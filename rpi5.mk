@@ -27,20 +27,40 @@ PRODUCT_MODEL := Raspberry Pi 5
 include frameworks/native/build/tablet-10in-xhdpi-2048-dalvik-heap.mk
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    debug.drm.mode.force=1280x720 \
+    debug.drm.mode.force=1024x600 \
+    ro.sf.lcd_density=160  # Set mdpi density for this resolution
     gralloc.drm.kms=/dev/dri/card1 \
     ro.opengles.version=196609 \
     ro.hardware.vulkan=broadcom \
     ro.hardware.egl=mesa \
     ro.hdmi.device_type=4 \
     wifi.interface=wlan0 \
-    ro.rfkilldisabled=1
-
-# application packages
+    ro.rfkilldisabled=1 \
+    keyguard.no_require_sim=true \
+    ro.config.ringtone=Girtab.ogg \
+    ro.config.notification_sound=Tethys.ogg \
+    ro.config.alarm_alert=Oxygen.ogg
+# Common Automotive Packages
 PRODUCT_PACKAGES += \
-    TvSettingsTwoPanel \
-    DeskClock \
-    RpLauncher
+    Bluetooth \
+    CarFrameworkServices \
+    CarActivityResolver \
+    CarDeveloperOptions \
+    CarSettingsIntelligence \
+    CarManagedProvisioning \
+    CarProvision \
+    StatementService \
+    SystemUpdater \
+    CarLauncher \
+    CarSystemUI \
+    OverviewApp \
+    CarMediaApp \
+    LocalMediaPlayer \
+    CarRadioApp \
+    CarMessengerApp \
+    CarDialerApp \
+    CarMapsPlaceholder \
+    CarFramework
 
 # overlay packages
 PRODUCT_PACKAGES += \
@@ -95,7 +115,31 @@ PRODUCT_PACKAGES += \
     android.hardware.tv.hdmi.earc-service \
     hwservicemanager \
     vndservicemanager
+# Enable multi-user and headless system user mode
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    ro.fw.mu.headless_system_user?=true \
+    android.car.user_hal_enabled?=true
+# SEPolicy for test apps/services in development builds
+ifneq (,$(filter userdebug eng, $(TARGET_BUILD_VARIANT)))
+PRODUCT_PACKAGES += \
+    GarageModeTestApp \
+    ExperimentalCarService \
+    SampleCustomInputService \
+    RailwayReferenceApp
+PRODUCT_PRIVATE_SEPOLICY_DIRS += packages/services/Car/car_product/sepolicy/test
+endif
 
+# Disable SurfaceFlinger shader cache for faster boot times
+PRODUCT_PROPERTY_OVERRIDES += service.sf.prime_shader_cache=0
+# SEPolicy and overlays
+$(call inherit-product, device/sample/products/location_overlay.mk)
+$(call inherit-product, packages/services/Car/car_product/build/car_base.mk)
+
+# Locale: English (US) only
+PRODUCT_LOCALES := en_US
+# System server and boot JARs
+PRODUCT_BOOT_JARS += android.car
+PRODUCT_SYSTEM_SERVER_JARS += car-frameworks-service
 # system configurations
 PRODUCT_COPY_FILES := \
     hardware/broadcom/wlan/bcmdhd/config/wpa_supplicant_overlay.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant_overlay.conf \
@@ -144,7 +188,10 @@ PRODUCT_COPY_FILES := \
     frameworks/base/data/sounds/effects/ogg/camera_click_48k.ogg:$(TARGET_COPY_OUT_PRODUCT)/media/audio/ui/camera_click.ogg \
     $(PRODUCT_COPY_FILES)
 
-PRODUCT_AAPT_PREF_CONFIG := tvdpi
-PRODUCT_CHARACTERISTICS := tv
+PRODUCT_AAPT_PREF_CONFIG := mdpi
+PRODUCT_CHARACTERISTICS := 
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
+# Boot animation
+PRODUCT_COPY_FILES += \
+    packages/services/Car/car_product/bootanimations/bootanimation-832.zip:system/media/bootanimation.zip
